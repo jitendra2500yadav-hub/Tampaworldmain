@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions for temporal integrity and authorization checking
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == "8709913752@tampabay.com";
+    }
+
+    // 1. User Profile collection rules
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId)
+                    && request.resource.data.keys().hasAll(['uid', 'mobile', 'balance'])
+                    && request.resource.data.uid is string
+                    && (request.resource.data.balance is int || request.resource.data.balance is float)
+                    && request.resource.data.mobile is string
+                    && request.resource.data.mobile.size() <= 40;
+      
+      // Allow admin or owner to update profiles (including blocked flags)
+      allow update: if isOwner(userId) || isAdmin();
+    }
+
+    // 2. Bet history sub-collection rules
+    match /users/{userId}/bets/{betId} {
+      allow read, list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId)
+                    && request.resource.data.keys().hasAll(['period', 'type', 'amount', 'timestamp'])
+                    && (request.resource.data.amount is int || request.resource.data.amount is float)
+                    && request.resource.data.amount > 0
+                    && request.resource.data.period is int;
+      allow update, delete: if false; // Bets are terminal immutables
+    }
+
+    // 3. Transactions ledger sub-collection rules
+    match /users/{userId}/transactions/{transactionId} {
+      allow read, list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId)
+                    && request.resource.data.keys().hasAll(['id', 'type', 'amount', 'timestamp', 'status', 'referenceNo'])
+                    && (request.resource.data.amount is int || request.resource.data.amount is float)
+                    && request.resource.data.amount > 0;
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if false; // Ledgers can never be deleted
+    }
+  }
+}

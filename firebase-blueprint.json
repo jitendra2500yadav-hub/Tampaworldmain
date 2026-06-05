@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with predicted score metrics, balanced USD capital accounts, and referrals",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "mobile": { "type": "string" },
+        "referCode": { "type": "string" },
+        "balance": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "mobile", "balance"]
+    },
+    "Bet": {
+      "title": "Bet",
+      "description": "Past prediction attempts and outcomes",
+      "type": "object",
+      "properties": {
+        "period": { "type": "number" },
+        "type": { "type": "string" },
+        "amount": { "type": "number" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["period", "type", "amount", "timestamp"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Admin security ledger for funding or settlement collections",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "amount": { "type": "number" },
+        "timestamp": { "type": "string" },
+        "status": { "type": "string" },
+        "referenceNo": { "type": "string" },
+        "accountNo": { "type": "string" }
+      },
+      "required": ["id", "type", "amount", "timestamp", "status", "referenceNo"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User specific balance records and registration details"
+    },
+    "/users/{userId}/bets/{betId}": {
+      "schema": "Bet",
+      "description": "Prediction rounds played by the user"
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Official financial statements associated with the user account"
+    }
+  }
+}
